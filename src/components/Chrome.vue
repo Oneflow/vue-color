@@ -1,15 +1,33 @@
 <template>
   <div role="application" aria-label="Chrome color picker" :class="['vc-chrome', disableAlpha ? 'vc-chrome__disable-alpha' : '']">
-    <div class="vc-chrome-saturation-wrap">
+<!--    <div class="vc-chrome-saturation-wrap">
       <saturation v-model="colors" @change="childChange"></saturation>
+    </div> -->
+    <div role="application" aria-label="Compact color picker" class="vc-compact">
+      <ul class="vc-compact-colors" role="listbox">
+        <li
+          v-for="c in paletteUpperCase(palette)"
+          role="option"
+          :aria-label="'color:' + c"
+          :aria-selected="c === pick"
+          class="vc-compact-color-item"
+          :key="c"
+          :class="{'vc-compact-color-item--white': c === '#FFFFFF' }"
+          :style="{background: c}"
+          @click="handlerClick(c)"
+        >
+          <div class="vc-compact-dot" v-show="c === pick"></div>
+        </li>
+      </ul>
     </div>
     <div class="vc-chrome-body">
       <div class="vc-chrome-controls">
         <div class="vc-chrome-color-wrap">
           <div :aria-label="`current color is ${colors.hex}`" class="vc-chrome-active-color" :style="{background: activeColor}"></div>
-          <checkboard v-if="!disableAlpha"></checkboard>
+<!--          <checkboard v-if="!disableAlpha"></checkboard> -->
         </div>
 
+<!--
         <div class="vc-chrome-sliders">
           <div class="vc-chrome-hue-wrap">
             <hue v-model="colors" @change="childChange"></hue>
@@ -18,6 +36,7 @@
             <alpha v-model="colors" @change="childChange"></alpha>
           </div>
         </div>
+-->
       </div>
 
       <div class="vc-chrome-fields-wrap" v-if="!disableFields">
@@ -29,33 +48,18 @@
           </div>
         </div>
         <div class="vc-chrome-fields" v-show="fieldsIndex === 1">
-          <!-- rgba -->
+          <!-- cmyk -->
           <div class="vc-chrome-field">
-            <ed-in label="r" :value="colors.rgba.r" @change="inputChange"></ed-in>
-          </div>
-          <div class="vc-chrome-field">
-            <ed-in label="g" :value="colors.rgba.g" @change="inputChange"></ed-in>
+            <ed-in label="c" :value="cmyk.c" :min=0 :max=100 @change="inputChange"></ed-in>
           </div>
           <div class="vc-chrome-field">
-            <ed-in label="b" :value="colors.rgba.b" @change="inputChange"></ed-in>
-          </div>
-          <div class="vc-chrome-field" v-if="!disableAlpha">
-            <ed-in label="a" :value="colors.a" :arrow-offset="0.01" :max="1" @change="inputChange"></ed-in>
-          </div>
-        </div>
-        <div class="vc-chrome-fields" v-show="fieldsIndex === 2">
-          <!-- hsla -->
-          <div class="vc-chrome-field">
-            <ed-in label="h" :value="hsl.h" @change="inputChange"></ed-in>
+            <ed-in label="m" :value="cmyk.m" :min=0 :max=100 @change="inputChange"></ed-in>
           </div>
           <div class="vc-chrome-field">
-            <ed-in label="s" :value="hsl.s" @change="inputChange"></ed-in>
+            <ed-in label="y" :value="cmyk.y" :min=0 :max=100 @change="inputChange"></ed-in>
           </div>
           <div class="vc-chrome-field">
-            <ed-in label="l" :value="hsl.l" @change="inputChange"></ed-in>
-          </div>
-          <div class="vc-chrome-field" v-if="!disableAlpha">
-            <ed-in label="a" :value="colors.a" :arrow-offset="0.01" :max="1" @change="inputChange"></ed-in>
+            <ed-in label="k" :value="cmyk.k" :min=0 :max=100 @change="inputChange"></ed-in>
           </div>
         </div>
         <!-- btn -->
@@ -84,6 +88,51 @@ import hue from './common/Hue.vue'
 import alpha from './common/Alpha.vue'
 import checkboard from './common/Checkboard.vue'
 
+const defaultColors = [
+  '#4D4D4D', '#999999', '#FFFFFF', '#F44E3B', '#FE9200', '#FCDC00',
+  '#DBDF00', '#A4DD00', '#68CCCA', '#73D8FF', '#AEA1FF', '#FDA1FF',
+  '#333333', '#808080', '#CCCCCC', '#D33115', '#E27300', '#FCC400',
+  '#B0BC00', '#68BC00', '#16A5A5', '#009CE0', '#7B64FF', '#FA28FF',
+  '#000000', '#666666', '#B3B3B3', '#9F0500', '#C45100', '#FB9E00',
+  '#808900', '#194D33', '#0C797D', '#0062B1', '#653294', '#AB149E'
+]
+
+const defaultCMYKColors = [
+  {c: 0, m: 0, y: 0, k: 100},
+  {c: 0, m: 0, y: 0, k: 75},
+  {c: 0, m: 0, y: 0, k: 50},
+  {c: 0, m: 0, y: 0, k: 25},
+  {c: 0, m: 0, y: 0, k: 0},
+
+  {c: 100, m: 0, y: 0, k: 0},
+  {c: 100, m: 50, y: 0, k: 0},
+  {c: 100, m: 100, y: 0, k: 0},
+
+  {c: 100, m: 0, y: 50, k: 0},
+  {c: 100, m: 50, y: 50, k: 0},
+  {c: 100, m: 100, y: 50, k: 0},
+
+  {c: 100, m: 0, y: 100, k: 0},
+  {c: 100, m: 50, y: 100, k: 0},
+
+
+  {c: 0, m: 100, y: 0, k: 0},
+  {c: 0, m: 100, y: 50, k: 0},
+  {c: 0, m: 100, y: 100, k: 0},
+
+  {c: 50, m: 100, y: 0, k: 0},
+  {c: 50, m: 100, y: 50, k: 0},
+  {c: 50, m: 100, y: 100, k: 0},
+
+
+  {c: 0, m: 0, y: 100, k: 0},
+  {c: 50, m: 0, y: 100, k: 0},
+  {c: 100, m: 0, y: 100, k: 0},
+
+  {c: 0, m: 50, y: 100, k: 0},
+  {c: 50, m: 50, y: 100, k: 0},
+  {c: 100, m: 50, y: 100, k: 0}
+]
 export default {
   name: 'Chrome',
   mixins: [colorMixin],
@@ -95,6 +144,18 @@ export default {
     disableFields: {
       type: Boolean,
       default: false
+    },
+    palette: {
+      type: Array,
+      default () {
+        return defaultColors
+      }
+    },
+    paletteCMYK: {
+      type: Array,
+      default() {
+        return defaultCMYKColors
+      }
     }
   },
   components: {
@@ -112,6 +173,7 @@ export default {
   },
   computed: {
     hsl () {
+      console.debug("Chrome.computed.hsl")
       const { h, s, l } = this.colors.hsl
       return {
         h: h.toFixed(),
@@ -119,7 +181,19 @@ export default {
         l: `${(l * 100).toFixed()}%`
       }
     },
+    cmyk () {
+      console.debug("Chrome.computed.cmyk")
+      var cmyk = this.convertRGBtoCMYK(this.colors.rgba)
+      return {
+        c: cmyk.c,
+        m: cmyk.m,
+        y: cmyk.y,
+        k: cmyk.k,
+        source: 'cmyk'
+      }
+    },
     activeColor () {
+      console.debug("Chrome.computed.activeColor")
       const rgba = this.colors.rgba
       return 'rgba(' + [rgba.r, rgba.g, rgba.b, rgba.a].join(',') + ')'
     },
@@ -128,10 +202,26 @@ export default {
     }
   },
   methods: {
+    convertRGBtoCMYK(rgb) {
+      console.debug("Chrome.convertRGBtoCMYK")
+      return this.convertRGB_to_CMYK(rgb);
+    },
+    convertCMYKtoRGB(cmyk) {
+      console.debug("Chrome.convertCMYKtoRGB") 
+      return this.convertCMYK_to_RGB(cmyk);
+    },
     childChange (data) {
+      console.debug("Chrome.childChange")
       this.colorChange(data)
     },
+    handlerClick (c) {
+      this.colorChange({
+        hex: c,
+        source: 'hex'
+      })
+    },
     inputChange (data) {
+      console.debug("Chrome.inputChange")
       if (!data) {
         return
       }
@@ -141,6 +231,7 @@ export default {
           source: 'hex'
         })
       } else if (data.r || data.g || data.b || data.a) {
+        console.debug("RGB");
         this.colorChange({
           r: data.r || this.colors.rgba.r,
           g: data.g || this.colors.rgba.g,
@@ -149,6 +240,7 @@ export default {
           source: 'rgba'
         })
       } else if (data.h || data.s || data.l) {
+        console.debug("HSL");
         const s = data.s ? (data.s.replace('%', '') / 100) : this.colors.hsl.s
         const l = data.l ? (data.l.replace('%', '') / 100) : this.colors.hsl.l
 
@@ -158,10 +250,27 @@ export default {
           l,
           source: 'hsl'
         })
+      } else if (data.c || data.m || data.y || data.k) {
+        console.debug("CMYK: " + this.cmyk.c + ", " + this.cmyk.m + ", " + 
+                        this.cmyk.y + ", " + this.cmyk.k);
+        console.debug("data CMYK: " + data.c + ", " + data.m + ", " + 
+                        data.y + ", " + data.k)
+        var locCMYK = { cmyk: {
+            c: data.c || this.cmyk.c,
+            m: data.m || this.cmyk.m,
+            y: data.y || this.cmyk.y,
+            k: data.k || this.cmyk.k,
+            source: "cmyk"
+          }
+        }
+        console.debug("locCMYK: " + locCMYK.cmyk.c + ", " + locCMYK.cmyk.m + ", " + 
+                        locCMYK.cmyk.y + ", " + locCMYK.cmyk.k)
+        //var cmyk = this.convertRGBtoCMYK(this.color.rgba);
+        this.colorChange(locCMYK)
       }
     },
     toggleViews () {
-      if (this.fieldsIndex >= 2) {
+      if (this.fieldsIndex >= 1) {
         this.fieldsIndex = 0
         return
       }
