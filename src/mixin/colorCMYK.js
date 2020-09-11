@@ -72,36 +72,28 @@ function _convertCMYKtoRGBHEX(cmyk) {
   return '#' + _decimalToHex(rgb.r, 2) + _decimalToHex(rgb.g, 2) + _decimalToHex(rgb.b, 2);
 }
 
-function _colorChange (data, oldHue) {
+function _colorChange (data) {
   console.debug("color._colorChange")
   var alpha = data && data.a
   var color
   var cmyk
 
   // hsl is better than hex between conversions
-  if (data && data.hsl) {
-    color = tinycolor(data.hsl)
-  } else if (data && data.hex && data.hex.length > 0) {
-    color = tinycolor(data.hex)
-  } else if (data && data.hsv) {
-    color = tinycolor(data.hsv)
-  } else if (data && data.rgba) {
-    color = tinycolor(data.rgba)
-  } else if (data && data.rgb) {
-    color = tinycolor(data.rgb)
-  } else if (data && data.cmyk) {
+  if (data && data.cmyk) {
+    cmyk = data.cmyk;
     color = tinycolor(_convertCMYKtoRGB(data.cmyk));
     console.debug("color._colorChange computed color:" + color)
-  } else {
+  } 
+  else {
     color = tinycolor(data)
   }
 
-  if (color && (color._a === undefined || color._a === null)) {
-    color.setAlpha(alpha || 1)
-  }
+  // if (color && (color._a === undefined || color._a === null)) {
+  //   color.setAlpha(alpha || 1)
+  // }
 
-  var hsl = color.toHsl()
-  var hsv = color.toHsv()
+  // var hsl = color.toHsl()
+  // var hsv = color.toHsv()
 
   if (cmyk) {
     console.debug("color._colorChange leaving CMYK alonge")
@@ -113,9 +105,9 @@ function _colorChange (data, oldHue) {
   console.debug("color._colorChange color.cmyk: " + cmyk.c + ", " + cmyk.m + ", " + 
                   cmyk.y + ", " + cmyk.k);
 
-  if (hsl.s === 0) {
-    hsv.h = hsl.h = data.h || (data.hsl && data.hsl.h) || oldHue || 0
-  }
+  // if (hsl.s === 0) {
+  //   hsv.h = hsl.h = data.h || (data.hsl && data.hsl.h) || oldHue || 0
+  // }
 
   console.debug("color._colorChange color:" + color);
 
@@ -135,14 +127,14 @@ function _colorChange (data, oldHue) {
   /* ------ */
 
   return {
-    hsl: hsl,
+    // hsl: hsl,
     hex: color.toHexString().toUpperCase(),
     hex8: color.toHex8String().toUpperCase(),
     rgba: color.toRgb(),
-    hsv: hsv,
-    oldHue: data.h || oldHue || hsl.h,
+    // hsv: hsv,
+    // oldHue: data.h || oldHue || hsl.h,
     source: data.source,
-    a: data.a || color.getAlpha(),
+    // a: data.a || color.getAlpha(),
     cmyk: {c: cmyk.c, m: cmyk.m, y: cmyk.y, k: cmyk.k}
   }
 }
@@ -174,6 +166,9 @@ export default {
     }
   },
   methods: {
+    getCMYK() {
+      return this.colors.cmyk;
+    },
     convertRGB_to_CMYK(cmyk) {
       console.debug("color.convertRGB_to_CMYK")
       return _convertRGBtoCMYK(cmyk);
@@ -182,54 +177,45 @@ export default {
       console.debug("color.convertCMYK_to_RGB")
       return _convertCMYKtoRGBHEX(cmyk);
     },
-    // convertCMYKtoRGB(cmyk) {
-    //   var oneMinusK = 1-(cmyk.k/100);
-    //   var r = 255 * (1 - c/100) * oneMinusK;
-    //   var g = 255 * (1 - m/100) * oneMinusK;
-    //   var b = 255 * (1 - y/100) * oneMinueK;
-
-    //   return {
-    //     r: r,
-    //     g: g,
-    //     b: b
-    //   }
-    // },
     colorChange (data, oldHue) {
       console.debug("color.colorChange")
-      this.oldHue = this.colors.hsl.h
-      this.colors = _colorChange(data, oldHue || this.oldHue)
+      // this.oldHue = this.colors.hsl.h
+      this.colors = _colorChange(data)
     },
-    isValidHex (hex) {
-      console.debug("color.isValidHex")
-      return tinycolor(hex).isValid()
-    },
-    simpleCheckForValidColor (data) {
-      console.debug("color.simpleCheckForValidColor")
-      var keysToCheck = ['r', 'g', 'b', 'a', 'h', 's', 'l', 'v']
-      var checked = 0
-      var passed = 0
-
-      for (var i = 0; i < keysToCheck.length; i++) {
-        var letter = keysToCheck[i]
-        if (data[letter]) {
-          checked++
-          if (!isNaN(data[letter])) {
-            passed++
-          }
-        }
-      }
-
-      if (checked === passed) {
-        return data
-      }
-    },
-    paletteUpperCase (palette) {
-      console.debug("color.paletteUpperCase")
-      return palette.map(c => c.toUpperCase())
-    },
-    isTransparent (color) {
-      console.debug("color.isTransparent")
-      return tinycolor(color).getAlpha() === 0
+    getHex() {
+      return this.colors.hex;
     }
+    // isValidHex (hex) {
+    //   console.debug("color.isValidHex")
+    //   return tinycolor(hex).isValid()
+    // }
+    // simpleCheckForValidColor (data) {
+    //   console.debug("color.simpleCheckForValidColor")
+    //   var keysToCheck = ['r', 'g', 'b', 'a', 'h', 's', 'l', 'v']
+    //   var checked = 0
+    //   var passed = 0
+
+    //   for (var i = 0; i < keysToCheck.length; i++) {
+    //     var letter = keysToCheck[i]
+    //     if (data[letter]) {
+    //       checked++
+    //       if (!isNaN(data[letter])) {
+    //         passed++
+    //       }
+    //     }
+    //   }
+
+    //   if (checked === passed) {
+    //     return data
+    //   }
+    // },
+    // paletteUpperCase (palette) {
+    //   console.debug("color.paletteUpperCase")
+    //   return palette.map(c => c.toUpperCase())
+    // },
+    // isTransparent (color) {
+    //   console.debug("color.isTransparent")
+    //   return tinycolor(color).getAlpha() === 0
+    // }
   }
 }

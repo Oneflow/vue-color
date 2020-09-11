@@ -1,37 +1,64 @@
 <template>
-  <div role="application" aria-label="Chrome color picker" :class="['vc-chrome']">
-    <div role="application" aria-label="Compact color picker" class="vc-chrome-boxes">
-      <ul class="vc-chrome-colors" role="listbox">
-        <li
-          v-for="c in paletteCMYK"
-          role="option"
-          :aria-label="'color:' + c.name"
-          :aria-selected="c.name === pick"
-          class="vc-compact-color-item"
-          :key="c"
-          :class="{'vc-compact-color-item--white': c.name === 'white' || c.name === 'yellow'}"
-          :style="{background: c.colorhex}"
-          @click="handlerClick(c)"
-        >
-          <div class="vc-compact-dot" v-show="c.name === pick"></div>
-        </li>
-      </ul>
+  <div role="application" aria-label="Chrome color picker" :class="['vc-chrome', disableAlpha ? 'vc-chrome__disable-alpha' : '']">
+    <div class="vc-chrome-saturation-wrap">
+      <saturation v-model="colors" @change="childChange"></saturation>
     </div>
     <div class="vc-chrome-body">
       <div class="vc-chrome-controls">
         <div class="vc-chrome-color-wrap">
           <div :aria-label="`current color is ${colors.hex}`" class="vc-chrome-active-color" :style="{background: activeColor}"></div>
+          <checkboard v-if="!disableAlpha"></checkboard>
         </div>
-      </div>      
-      <div class="vc-chrome-fields-wrap">
-        <div class="vc-chrome-fields" v-show="fieldsIndex === 1">
+
+        <div class="vc-chrome-sliders">
+          <div class="vc-chrome-hue-wrap">
+            <hue v-model="colors" @change="childChange"></hue>
+          </div>
+          <div class="vc-chrome-alpha-wrap" v-if="!disableAlpha">
+            <alpha v-model="colors" @change="childChange"></alpha>
+          </div>
+        </div>
+      </div>
+
+      <div class="vc-chrome-fields-wrap" v-if="!disableFields">
+        <div class="vc-chrome-fields" v-show="fieldsIndex === 0">
           <!-- hex -->
           <div class="vc-chrome-field">
             <ed-in v-if="!hasAlpha" label="hex" :value="colors.hex" @change="inputChange"></ed-in>
             <ed-in v-if="hasAlpha" label="hex" :value="colors.hex8" @change="inputChange"></ed-in>
           </div>
         </div>
-        <div class="vc-chrome-fields" v-show="fieldsIndex === 0">
+        <div class="vc-chrome-fields" v-show="fieldsIndex === 1">
+          <!-- rgba -->
+          <div class="vc-chrome-field">
+            <ed-in label="r" :value="colors.rgba.r" @change="inputChange"></ed-in>
+          </div>
+          <div class="vc-chrome-field">
+            <ed-in label="g" :value="colors.rgba.g" @change="inputChange"></ed-in>
+          </div>
+          <div class="vc-chrome-field">
+            <ed-in label="b" :value="colors.rgba.b" @change="inputChange"></ed-in>
+          </div>
+          <div class="vc-chrome-field" v-if="!disableAlpha">
+            <ed-in label="a" :value="colors.a" :arrow-offset="0.01" :max="1" @change="inputChange"></ed-in>
+          </div>
+        </div>
+        <div class="vc-chrome-fields" v-show="fieldsIndex === 2">
+          <!-- hsla -->
+          <div class="vc-chrome-field">
+            <ed-in label="h" :value="hsl.h" @change="inputChange"></ed-in>
+          </div>
+          <div class="vc-chrome-field">
+            <ed-in label="s" :value="hsl.s" @change="inputChange"></ed-in>
+          </div>
+          <div class="vc-chrome-field">
+            <ed-in label="l" :value="hsl.l" @change="inputChange"></ed-in>
+          </div>
+          <div class="vc-chrome-field" v-if="!disableAlpha">
+            <ed-in label="a" :value="colors.a" :arrow-offset="0.01" :max="1" @change="inputChange"></ed-in>
+          </div>
+        </div>
+        <div class="vc-chrome-fields" v-show="fieldsIndex === 3">
           <!-- cmyk -->
           <div class="vc-chrome-field">
             <ed-in label="c" :value="cmyk.c" :min=0 :max=100 @change="inputChange"></ed-in>
@@ -46,86 +73,32 @@
             <ed-in label="k" :value="cmyk.k" :min=0 :max=100 @change="inputChange"></ed-in>
           </div>
         </div>
-      </div>
-          <div class="vc-chrome-field">
-            <br>
-            hex: {{  getHex() }}
+        <!-- btn -->
+        <div class="vc-chrome-toggle-btn" role="button" aria-label="Change another color definition" @click="toggleViews">
+          <div class="vc-chrome-toggle-icon">
+            <svg style="width:24px; height:24px" viewBox="0 0 24 24"
+              @mouseover="showHighlight"
+              @mouseenter="showHighlight"
+              @mouseout="hideHighlight">
+              <path fill="#333" d="M12,18.17L8.83,15L7.42,16.41L12,21L16.59,16.41L15.17,15M12,5.83L15.17,9L16.58,7.59L12,3L7.41,7.59L8.83,9L12,5.83Z" />
+            </svg>
           </div>
+          <div class="vc-chrome-toggle-icon-highlight" v-show="highlight"></div>
+        </div>
+        <!-- btn -->
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import colorMixin from '../mixin/colorCMYK'
+import colorMixin from '../mixin/color'
 import editableInput from './common/EditableInput.vue'
 import saturation from './common/Saturation.vue'
 import hue from './common/Hue.vue'
 import alpha from './common/Alpha.vue'
 import checkboard from './common/Checkboard.vue'
 
-const defaultCMYKColors = [
-  {
-    cmyk: {c: 0, m: 0, y: 0, k: 100},
-    colorhex: '#000000',
-    name: 'black'
-  },
-  {
-    cmyk: {c: 0, m: 0, y: 0, k: 75},
-    colorhex: '#404040',
-    name: 'grey75'
-  },
-  {
-    cmyk: {c: 0, m: 0, y: 0, k: 50},
-    colorhex: '#808080',
-    name: 'grey50'
-  },
-  {
-    cmyk: {c: 0, m: 0, y: 0, k: 25},
-    colorhex: '#BFBFBF',
-    name: 'grey25'
-  },
-  {
-    cmyk: {c: 0, m: 0, y: 0, k: 0},
-    colorhex: '#FFFFFF',
-    name: 'white'
-  },
-
-  {
-    cmyk: {c: 100, m: 0, y: 0, k: 0},
-    colorhex: '#00FFFF',
-    name: 'cyan'
-  },
-
-  {
-    cmyk: {c: 100, m: 100, y: 0, k: 0},
-    colorhex: '#0000FF',
-    name: 'blue'
-  },
-
-  {
-    cmyk: {c: 0, m: 100, y: 0, k: 0},
-    colorhex: '#FF00FF',
-    name: 'magenta'
-  },
-
-  {
-    cmyk: {c: 0, m: 100, y: 100, k: 0},
-    colorhex: '#FF0000',
-    name: 'red'
-  },
-
-  {
-    cmyk: {c: 0, m: 0, y: 100, k: 0},
-    colorhex: '#FFFF00',
-    name: 'yellow'
-  },
-
-  {
-    cmyk: {c: 100, m: 0, y: 100, k: 0},
-    colorhex: '#00FF00',
-    name: 'green'
-  }
-]
 export default {
   name: 'Chrome',
   mixins: [colorMixin],
@@ -134,15 +107,9 @@ export default {
       type: Boolean,
       default: false
     },
-    paletteCMYK: {
-      type: Array,
-      default() {
-        return defaultCMYKColors
-      }
-    },
-    pick: {
-      type: String,
-      default: 'black'
+    disableFields: {
+      type: Boolean,
+      default: false
     }
   },
   components: {
@@ -159,19 +126,18 @@ export default {
     }
   },
   computed: {
-    // hsl () {
-    //   console.debug("Chrome.computed.hsl")
-    //   const { h, s, l } = this.colors.hsl
-    //   return {
-    //     h: h.toFixed(),
-    //     s: `${(s * 100).toFixed()}%`,
-    //     l: `${(l * 100).toFixed()}%`
-    //   }
-    // },
+    hsl () {
+      console.debug("Chrome.computed.hsl")
+      const { h, s, l } = this.colors.hsl
+      return {
+        h: h.toFixed(),
+        s: `${(s * 100).toFixed()}%`,
+        l: `${(l * 100).toFixed()}%`
+      }
+    },
     cmyk () {
       console.debug("Chrome.computed.cmyk")
-      //var cmyk = this.convertRGBtoCMYK(this.colors.rgba)
-      var cmyk = this.getCMYK()
+      var cmyk = this.convertRGBtoCMYK(this.colors.rgba)
       return {
         c: cmyk.c,
         m: cmyk.m,
@@ -179,10 +145,6 @@ export default {
         k: cmyk.k,
         source: 'cmyk'
       }
-    },
-    hex() {
-      var hex = this.getHex()
-      return {hex: hex}
     },
     activeColor () {
       console.debug("Chrome.computed.activeColor")
@@ -194,37 +156,45 @@ export default {
     }
   },
   methods: {
-    computeBackground (cmyk) {
-      return {
-        background: '#FFFFFF'
-      }
-    },
     convertRGBtoCMYK(rgb) {
       console.debug("Chrome.convertRGBtoCMYK")
       return this.convertRGB_to_CMYK(rgb);
-    },
-    convertCMYKtoRGBHEX(cmyk) {
-      console.debug("Chrome.convertCMYKtoRGBHEX") 
-      return this.convertCMYK_to_RGBHEX(cmyk);
     },
     childChange (data) {
       console.debug("Chrome.childChange")
       this.colorChange(data)
     },
-    handlerClick (c) {
-      this.pick = c.name;
-      this.colorChange({
-        cmyk: c.cmyk,
-        source: 'cmyk'
-      })
-    },
     inputChange (data) {
       console.debug("Chrome.inputChange")
-      this.pick = 'none'
       if (!data) {
         return
       }
-      if (data.c || data.m || data.y || data.k) {  
+      if (data.hex) {
+        this.isValidHex(data.hex) && this.colorChange({
+          hex: data.hex,
+          source: 'hex'
+        })
+      } else if (data.r || data.g || data.b || data.a) {
+        console.debug("RGB");
+        this.colorChange({
+          r: data.r || this.colors.rgba.r,
+          g: data.g || this.colors.rgba.g,
+          b: data.b || this.colors.rgba.b,
+          a: data.a || this.colors.rgba.a,
+          source: 'rgba'
+        })
+      } else if (data.h || data.s || data.l) {
+        console.debug("HSL");
+        const s = data.s ? (data.s.replace('%', '') / 100) : this.colors.hsl.s
+        const l = data.l ? (data.l.replace('%', '') / 100) : this.colors.hsl.l
+
+        this.colorChange({
+          h: data.h || this.colors.hsl.h,
+          s,
+          l,
+          source: 'hsl'
+        })
+      } else if (data.c || data.m || data.y || data.k) {
         console.debug("CMYK: " + this.cmyk.c + ", " + this.cmyk.m + ", " + 
                         this.cmyk.y + ", " + this.cmyk.k);
         console.debug("data CMYK: " + data.c + ", " + data.m + ", " + 
@@ -244,7 +214,7 @@ export default {
       }
     },
     toggleViews () {
-      if (this.fieldsIndex >= 1) {
+      if (this.fieldsIndex >= 3) {
         this.fieldsIndex = 0
         return
       }
@@ -270,28 +240,17 @@ export default {
   font-family: Menlo;
   background-color: #fff;
 }
-.vc-chrome-boxes {
-  padding-top: 5px;
-  padding-left: 5px;
-  width: 225px;
-  border-radius: 2px;
-  box-sizing: border-box;
-  box-shadow: 0 2px 10px rgba(0,0,0,.12), 0 2px 5px rgba(0,0,0,.16);
-  background-color: #fff;
-}
-.vc-chrome-colors {
-  overflow: hidden;
-  padding: 0;
-  margin: 0;
-}
-
 .vc-chrome-controls {
   display: flex;
 }
+.vc-chrome-color-wrap {
+  position: relative;
+  width: 36px;
+}
 .vc-chrome-active-color {
-  position: center;
-  width: 45px;
-  height: 45px;
+  position: relative;
+  width: 30px;
+  height: 30px;
   border-radius: 15px;
   overflow: hidden;
   z-index: 1;
@@ -409,49 +368,4 @@ export default {
   margin-top: 4px;
   margin-bottom: 4px;
 }
-
-
-
-.vc-compact {
-  padding-top: 5px;
-  padding-left: 5px;
-  width: 245px;
-  border-radius: 2px;
-  box-sizing: border-box;
-  box-shadow: 0 2px 10px rgba(0,0,0,.12), 0 2px 5px rgba(0,0,0,.16);
-  background-color: #fff;
-}
-.vc-compact-colors {
-  overflow: hidden;
-  padding: 0;
-  margin: 0;
-}
-.vc-compact-color-item {
-  list-style: none;
-  width: 15px;
-  height: 15px;
-  float: left;
-  margin-right: 5px;
-  margin-bottom: 5px;
-  position: relative;
-  cursor: pointer;
-}
-.vc-compact-color-item--white {
-  box-shadow: inset 0 0 0 1px #ddd;
-}
-.vc-compact-color-item--white .vc-compact-dot {
-  background: #000;
-}
-
-.vc-compact-dot {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  bottom: 5px;
-  left: 5px;
-  border-radius: 50%;
-  opacity: 1;
-  background: #fff;
-}
-
 </style>

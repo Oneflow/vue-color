@@ -16,39 +16,38 @@
         </div>
       </div>
     </div>
-
     <div class="demo-container">
       <div class="demo-list">
         <div class="demo-item">
-          <sketch-picker v-model="colors"></sketch-picker>
+<!--          <sketch-picker v-model="colors"></sketch-picker> -->
           <h2>Sketch</h2>
         </div>
         <div class="demo-item">
-          <photoshop-picker v-model="colors" @ok="onOk" @cancel="onCancel"></photoshop-picker>
+<!--          <photoshop-picker v-model="colors" @ok="onOk" @cancel="onCancel"></photoshop-picker> -->
           <h2>Photoshop</h2>
         </div>
       </div>
       <div class="demo-list">
         <div class="demo-item">
-          <material-picker v-model="colors"></material-picker>
+<!--          <material-picker v-model="colors"></material-picker> -->
           <h2>Material</h2>
         </div>
         <div class="demo-item">
-          <slider-picker v-model="colors"></slider-picker>
+<!--          <slider-picker v-model="colors"></slider-picker> -->
           <h2>Slider</h2>
         </div>
       </div>
       <div class="demo-list">
         <div class="demo-item">
-          <compact-picker v-model="colors"></compact-picker>
+<!--          <compact-picker v-model="colors"></compact-picker> -->
           <h2>Compact</h2>
           <br>
           <br>
-          <grayscale-picker :value="colors" @input="updateValue"></grayscale-picker>
+<!--          <grayscale-picker :value="colors" @input="updateValue"></grayscale-picker> -->
           <h2>Grayscale</h2>
         </div>
         <div class="demo-item">
-          <swatches-picker v-model="colors"></swatches-picker>
+<!--          <swatches-picker v-model="colors"></swatches-picker> -->
           <h2>Swatches</h2>
         </div>
       </div>
