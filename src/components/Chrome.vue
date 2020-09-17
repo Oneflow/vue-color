@@ -1,6 +1,10 @@
 <template>
   <div role="application" aria-label="Chrome color picker" :class="['vc-chrome']">
-    <div role="application" aria-label="Compact color picker" class="vc-chrome-boxes">
+    <select v-on:change="selectType($event);" value="pickerType">
+      <option :selected="this.pickerType === this.CMYKString">{{ this.CMYKString }} </option>
+      <option :selected="this.pickerType === this.RegString">{{ this.RegString }}</option>
+    </select>
+    <div v-if="this.pickerType === this.CMYKString" role="application" aria-label="Compact color picker" class="vc-chrome-boxes">
       <ul class="vc-chrome-colors" role="listbox">
         <li
           v-for="c in paletteCMYK"
@@ -11,7 +15,24 @@
           :key="c"
           :class="{'vc-compact-color-item--white': c.name === 'white' || c.name === 'yellow'}"
           :style="{background: c.colorhex}"
-          @click="handlerClick(c)"
+          @click="handlerCMYKClick(c)"
+        >
+          <div class="vc-compact-dot" v-show="c.name === pick"></div>
+        </li>
+      </ul>
+    </div>
+    <div v-if="this.pickerType === this.RegString" role="application" aria-label="Compact color picker" class="vc-chrome-boxes">
+      <ul class="vc-chrome-colors" role="listbox">
+        <li
+          v-for="c in paletteReg"
+          role="option"
+          :aria-label="'color:' + c.name"
+          :aria-selected="c.name === pick"
+          class="vc-compact-color-item"
+          :key="c"
+          :class="{'vc-compact-color-item--white': c.name === 'reg-white'}"
+          :style="{background: c.colorhex}"
+          @click="handlerRegClick(c)"
         >
           <div class="vc-compact-dot" v-show="c.name === pick"></div>
         </li>
@@ -24,14 +45,7 @@
         </div>
       </div>      
       <div class="vc-chrome-fields-wrap">
-        <div class="vc-chrome-fields" v-show="fieldsIndex === 1">
-          <!-- hex -->
-          <div class="vc-chrome-field">
-            <ed-in v-if="!hasAlpha" label="hex" :value="colors.hex" @change="inputChange"></ed-in>
-            <ed-in v-if="hasAlpha" label="hex" :value="colors.hex8" @change="inputChange"></ed-in>
-          </div>
-        </div>
-        <div class="vc-chrome-fields" v-show="fieldsIndex === 0">
+        <div class="vc-chrome-fields">
           <!-- cmyk -->
           <div class="vc-chrome-field">
             <ed-in label="c" :value="cmyk.c" :min=0 :max=100 @change="inputChange"></ed-in>
@@ -47,10 +61,6 @@
           </div>
         </div>
       </div>
-          <div class="vc-chrome-field">
-            <br>
-            hex: {{  getHex() }}
-          </div>
     </div>
   </div>
 </template>
@@ -126,6 +136,15 @@ const defaultCMYKColors = [
     name: 'green'
   }
 ]
+
+const defaultRegColors = [
+  {
+    cmyk: {c: 100, m: 100, y: 100, k: 100},
+    colorhex: '#000000',
+    name: 'reg-black'
+  }
+]
+
 export default {
   name: 'Chrome',
   mixins: [colorMixin],
@@ -138,6 +157,12 @@ export default {
       type: Array,
       default() {
         return defaultCMYKColors
+      }
+    },
+    paletteReg: {
+      type: Array,
+      default() {
+        return defaultRegColors
       }
     },
     pick: {
@@ -154,20 +179,13 @@ export default {
   },
   data () {
     return {
-      fieldsIndex: 0,
-      highlight: false
+      highlight: false,
+      CMYKString: 'CMYK',
+      RegString: 'Registration',
+      pickerType: 'CMYK'
     }
   },
   computed: {
-    // hsl () {
-    //   console.debug("Chrome.computed.hsl")
-    //   const { h, s, l } = this.colors.hsl
-    //   return {
-    //     h: h.toFixed(),
-    //     s: `${(s * 100).toFixed()}%`,
-    //     l: `${(l * 100).toFixed()}%`
-    //   }
-    // },
     cmyk () {
       console.debug("Chrome.computed.cmyk")
       //var cmyk = this.convertRGBtoCMYK(this.colors.rgba)
@@ -211,7 +229,17 @@ export default {
       console.debug("Chrome.childChange")
       this.colorChange(data)
     },
-    handlerClick (c) {
+    selectType (type) {
+      this.pickerType = type.target.value;
+    },
+    handlerCMYKClick (c) {
+      this.pick = c.name;
+      this.colorChange({
+        cmyk: c.cmyk,
+        source: 'cmyk'
+      })
+    },
+    handlerRegClick (c) {
       this.pick = c.name;
       this.colorChange({
         cmyk: c.cmyk,
@@ -242,13 +270,6 @@ export default {
         //var cmyk = this.convertRGBtoCMYK(this.color.rgba);
         this.colorChange(locCMYK)
       }
-    },
-    toggleViews () {
-      if (this.fieldsIndex >= 1) {
-        this.fieldsIndex = 0
-        return
-      }
-      this.fieldsIndex ++
     },
     showHighlight () {
       this.highlight = true

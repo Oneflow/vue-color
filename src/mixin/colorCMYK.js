@@ -74,7 +74,6 @@ function _convertCMYKtoRGBHEX(cmyk) {
 
 function _colorChange (data) {
   console.debug("color._colorChange")
-  var alpha = data && data.a
   var color
   var cmyk
 
@@ -88,13 +87,6 @@ function _colorChange (data) {
     color = tinycolor(data)
   }
 
-  // if (color && (color._a === undefined || color._a === null)) {
-  //   color.setAlpha(alpha || 1)
-  // }
-
-  // var hsl = color.toHsl()
-  // var hsv = color.toHsv()
-
   if (cmyk) {
     console.debug("color._colorChange leaving CMYK alonge")
   } else {
@@ -105,31 +97,12 @@ function _colorChange (data) {
   console.debug("color._colorChange color.cmyk: " + cmyk.c + ", " + cmyk.m + ", " + 
                   cmyk.y + ", " + cmyk.k);
 
-  // if (hsl.s === 0) {
-  //   hsv.h = hsl.h = data.h || (data.hsl && data.hsl.h) || oldHue || 0
-  // }
-
   console.debug("color._colorChange color:" + color);
-
-  /* --- comment this block to fix #109, may cause #25 again --- */
-  // when the hsv.v is less than 0.0164 (base on test)
-  // because of possible loss of precision
-  // the result of hue and saturation would be miscalculated
-  // if (hsv.v < 0.0164) {
-  //   hsv.h = data.h || (data.hsv && data.hsv.h) || 0
-  //   hsv.s = data.s || (data.hsv && data.hsv.s) || 0
-  // }
-
-  // if (hsl.l < 0.01) {
-  //   hsl.h = data.h || (data.hsl && data.hsl.h) || 0
-  //   hsl.s = data.s || (data.hsl && data.hsl.s) || 0
-  // }
-  /* ------ */
 
   return {
     // hsl: hsl,
     hex: color.toHexString().toUpperCase(),
-    hex8: color.toHex8String().toUpperCase(),
+//    hex8: color.toHex8String().toUpperCase(),
     rgba: color.toRgb(),
     // hsv: hsv,
     // oldHue: data.h || oldHue || hsl.h,
@@ -179,7 +152,6 @@ export default {
     },
     colorChange (data, oldHue) {
       console.debug("color.colorChange")
-      // this.oldHue = this.colors.hsl.h
       this.colors = _colorChange(data)
     },
     getHex() {
